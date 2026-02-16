@@ -45,14 +45,38 @@ app = Flask(__name__,
             static_folder='static',  # For serving frontend files
             static_url_path='')      # Serve static files from root
 
-# Configure CORS for production
+# ============================================
+# IMPORTANT: CORS CONFIGURATION FIX
+# ============================================
+# Get your frontend URL from environment variable or use the specific one
+FRONTEND_URL = os.environ.get('FRONTEND_URL', 'https://sentiment-analyzer-frontend-ijud.onrender.com')
+
+# Configure CORS properly - allow your specific frontend
 CORS(app, resources={
     r"/api/*": {
-        "origins": ["*"],  # In production, replace with your actual domain
-        "methods": ["GET", "POST", "OPTIONS"],
-        "allow_headers": ["Content-Type", "Authorization"]
+        "origins": [
+            FRONTEND_URL,  # Your frontend URL
+            "https://sentiment-analyzer-frontend.onrender.com",  # Generic frontend
+            "http://localhost:5000",  # Local development
+            "http://127.0.0.1:5000",  # Local development
+            "http://localhost:3000",   # Common local frontend port
+            "http://127.0.0.1:3000"
+        ],
+        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization", "X-Requested-With"],
+        "supports_credentials": True,
+        "max_age": 600  # Cache preflight requests for 10 minutes
     }
 })
+
+# Also handle OPTIONS requests explicitly
+@app.after_request
+def after_request(response):
+    response.headers.add('Access-Control-Allow-Origin', FRONTEND_URL)
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Requested-With')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+    response.headers.add('Access-Control-Allow-Credentials', 'true')
+    return response
 
 # Initialize sentiment analyzer
 analyzer = SentimentIntensityAnalyzer()
@@ -106,13 +130,15 @@ def analyze_sentiment():
     Endpoint to analyze sentiment using VADER
     Expects JSON: {"text": "user input text"}
     """
-    # Handle preflight requests (for CORS)
+    # Handle preflight requests explicitly
     if request.method == 'OPTIONS':
         response = jsonify({'status': 'ok'})
-        response.headers.add('Access-Control-Allow-Origin', '*')
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        response.headers.add('Access-Control-Allow-Origin', FRONTEND_URL)
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Requested-With')
         response.headers.add('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
-        return response, 204
+        response.headers.add('Access-Control-Allow-Credentials', 'true')
+        response.headers.add('Access-Control-Max-Age', '600')
+        return response, 200
     
     try:
         # Get and validate request data
@@ -147,12 +173,12 @@ def analyze_sentiment():
         neg = scores['neg']
         
         emotions = {
-            "anger": neg * 0.7,      # Negative contributes to anger
-            "disgust": neg * 0.6,     # Negative contributes to disgust
-            "fear": neg * 0.4,        # Negative can cause fear
-            "joy": pos * 0.9,         # Positive correlates with joy
-            "sadness": neg * 0.8,     # Negative correlates with sadness
-            "surprise": 0.2            # Base level of surprise
+            "anger": neg * 0.7,
+            "disgust": neg * 0.6,
+            "fear": neg * 0.4,
+            "joy": pos * 0.9,
+            "sadness": neg * 0.8,
+            "surprise": 0.2
         }
         
         # Extract sentiment-driving keywords
@@ -160,15 +186,12 @@ def analyze_sentiment():
         keywords = []
         
         if words:
-            # Get important words (length > 2, max 3)
             important_words = [w for w in words if len(w) > 2][:3]
             
             for word in important_words:
-                # Get sentiment for individual word
                 word_scores = analyzer.polarity_scores(word)
                 word_compound = word_scores['compound']
                 
-                # Determine word sentiment
                 if word_compound >= 0.05:
                     word_sentiment = 'positive'
                 elif word_compound <= -0.05:
@@ -182,7 +205,6 @@ def analyze_sentiment():
                     "relevance": min(abs(word_compound), 1.0)
                 })
         
-        # Fallback if no keywords extracted
         if not keywords:
             keywords = [{
                 "keyword": words[0] if words else text,
@@ -190,7 +212,6 @@ def analyze_sentiment():
                 "relevance": 0.5
             }]
         
-        # Prepare response
         analysis = {
             "overall_sentiment": sentiment,
             "sentiment_score": compound,
@@ -203,19 +224,16 @@ def analyze_sentiment():
             }
         }
         
-        # Log success in development
         if ENVIRONMENT != 'production':
             print(f"✅ Result: {sentiment.upper()} (score: {compound:.2f})")
         
         return jsonify(analysis), 200
         
     except Exception as e:
-        # Log error (but don't expose details in production)
         print(f"❌ Server error: {str(e)}")
         import traceback
         traceback.print_exc()
         
-        # Return generic error message in production
         if ENVIRONMENT == 'production':
             return jsonify({"error": "An internal server error occurred"}), 500
         else:
@@ -225,7 +243,11 @@ def analyze_sentiment():
 def health_check():
     """Health check endpoint for monitoring"""
     if request.method == 'OPTIONS':
-        return '', 204
+        response = jsonify({'status': 'ok'})
+        response.headers.add('Access-Control-Allow-Origin', FRONTEND_URL)
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        response.headers.add('Access-Control-Allow-Methods', 'GET,OPTIONS')
+        return response, 200
     
     return jsonify({
         "status": "ok",
@@ -250,12 +272,16 @@ def version_info():
 @app.errorhandler(404)
 def not_found(error):
     """Handle 404 errors"""
-    return jsonify({"error": "Endpoint not found"}), 404
+    response = jsonify({"error": "Endpoint not found"})
+    response.headers.add('Access-Control-Allow-Origin', FRONTEND_URL)
+    return response, 404
 
 @app.errorhandler(500)
 def internal_error(error):
     """Handle 500 errors"""
-    return jsonify({"error": "Internal server error"}), 500
+    response = jsonify({"error": "Internal server error"})
+    response.headers.add('Access-Control-Allow-Origin', FRONTEND_URL)
+    return response, 500
 
 # ============================================
 # MAIN ENTRY POINT
@@ -269,16 +295,16 @@ if __name__ == '__main__':
     print(f"📍 Server will run on: http://0.0.0.0:{PORT}")
     print(f"📍 API endpoint: http://0.0.0.0:{PORT}/api/analyze")
     print(f"📍 Health check: http://0.0.0.0:{PORT}/api/health")
+    print(f"📍 CORS allowed origin: {FRONTEND_URL}")
     print(f"📍 Using VADER sentiment analyzer (no API calls needed)")
     print(f"✓ NLTK data: {'Loaded' if analyzer else 'Failed'}")
     print("=" * 50)
     print("Press Ctrl+C to stop the server")
     print("=" * 50)
     
-    # Run the app
     app.run(
-        host='0.0.0.0',  # Listen on all interfaces (required for cloud deployment)
+        host='0.0.0.0',
         port=PORT,
-        debug=(ENVIRONMENT == 'development'),  # Only debug in development
-        threaded=True  # Enable multi-threading for better performance
+        debug=(ENVIRONMENT == 'development'),
+        threaded=True
     )
