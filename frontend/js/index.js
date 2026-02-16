@@ -6,7 +6,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // For local development:
     // const BACKEND_URL = "http://127.0.0.1:5000";
     
-    // For production (Render) - REPLACE THIS WITH YOUR ACTUAL RENDER URL AFTER DEPLOYMENT
+    // For production - YOUR ACTUAL LIVE BACKEND URL (UPDATED!)
     const BACKEND_URL = "https://sentiment-analyzer-backend-ywc6.onrender.com";
     
     const API_ENDPOINT = `${BACKEND_URL}/api/analyze`;
