@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: sentiment-analyzer-backend
+    runtime: python
+    repo: https://github.com/siseko-D/SentimentV3
+    plan: free
+    region: oregon
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: cd backend && gunicorn app:app
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: ENVIRONMENT
+        value: production

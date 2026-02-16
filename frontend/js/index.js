@@ -3,7 +3,12 @@ document.addEventListener("DOMContentLoaded", () => {
     // =================================================================================
     // === BACKEND SERVER CONFIGURATION ==========================================
     // =================================================================================
-    const BACKEND_URL = "http://127.0.0.1:5000"; // Local Python backend server
+    // For local development:
+    // const BACKEND_URL = "http://127.0.0.1:5000";
+    
+    // For production (Render) - REPLACE THIS WITH YOUR ACTUAL RENDER URL AFTER DEPLOYMENT
+    const BACKEND_URL = "https://sentiment-analyzer-backend.onrender.com";
+    
     const API_ENDPOINT = `${BACKEND_URL}/api/analyze`;
     const HEALTH_CHECK_URL = `${BACKEND_URL}/api/health`;
     // =================================================================================
@@ -26,7 +31,7 @@ document.addEventListener("DOMContentLoaded", () => {
         clearButton: document.getElementById("clear-button"),
         downloadReportButton: document.getElementById("download-report-button"),
         downloadOptions: document.getElementById("download-options"),
-        downloadButtonWrapper: document.getElementById("download-button-wrapper"), // New element reference
+        downloadButtonWrapper: document.getElementById("download-button-wrapper"),
         compareTab: document.getElementById("compare-tab"),
         compareSection: document.getElementById("compare-section"),
         compareInputsContainer: document.getElementById("compare-inputs-container"),
@@ -89,10 +94,10 @@ document.addEventListener("DOMContentLoaded", () => {
     let emotionBarChart, emotionPieChart, emotionRadarChart;
     let currentFile = null;
     let evaluationData = [];
-    let lastAnalysisResult = null; // Store the last analysis result for PDF export
+    let lastAnalysisResult = null;
     let compareBarChart, compareRadarChart;
     let batchResults = [];
-    const BATCH_ANALYSIS_LIMIT = 20; // Limit for demonstration purposes
+    const BATCH_ANALYSIS_LIMIT = 20;
 
     // --- Utility Functions ---
     function showLoading(buttonTextElement, loadingIndicatorElement) {
@@ -110,7 +115,6 @@ document.addEventListener("DOMContentLoaded", () => {
     function displayError(message, errorDiv, errorTextSpan) {
         errorTextSpan.textContent = message;
         errorDiv.classList.remove("hidden");
-        // Scroll to error for visibility
         errorDiv.scrollIntoView({ behavior: "smooth", block: "center" });
     }
 
@@ -122,13 +126,18 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    // --- Utility Function for Delay ---
     function delay(ms) {
         return new Promise((resolve) => setTimeout(resolve, ms));
     }
 
-    // --- File Analysis Logic ---
-    let fileContent = null; // Declare fileContent globally or within the DOMContentLoaded scope
+    function readFileAsText(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => resolve(e.target.result);
+            reader.onerror = (e) => reject(new Error("Failed to read file"));
+            reader.readAsText(file);
+        });
+    }
 
     async function handleFileAnalysis() {
         if (!currentFile) {
@@ -156,7 +165,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 throw new Error("File is empty or contains no valid text lines.");
             }
 
-            // Process lines with limit
             const linesToProcess = lines.slice(0, BATCH_ANALYSIS_LIMIT);
             const results = [];
 
@@ -168,7 +176,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         sentiment: analysis.overall_sentiment,
                         confidence: analysis.sentiment_score,
                         emotions: analysis.emotions,
-                        evaluation_score: analysis.sentiment_score // Added to match your existing structure
+                        evaluation_score: analysis.sentiment_score
                     });
                 } catch (error) {
                     console.error(`Error analyzing line: "${line.substring(0, 50)}..."`, error);
@@ -181,7 +189,6 @@ document.addEventListener("DOMContentLoaded", () => {
                         emotions: {}
                     });
                 }
-                // Add small delay between API calls to avoid rate limiting
                 await delay(300);
             }
 
@@ -189,7 +196,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 generateFileResultsHTML(results);
                 DOMElements.batchResults.classList.remove("hidden");
 
-                // Save to history (matches your existing saveToHistory function)
                 saveToHistory(
                     {
                         overall_sentiment: results[0].sentiment || "neutral",
@@ -215,19 +221,9 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    // Add this helper function near your other utility functions
-    function readFileAsText(file) {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = (e) => resolve(e.target.result);
-            reader.onerror = (e) => reject(new Error("Failed to read file"));
-            reader.readAsText(file);
-        });
-    }
-
     function generateFileResultsHTML(results) {
         const resultsList = DOMElements.batchResultsList;
-        resultsList.innerHTML = ""; // Clear previous results
+        resultsList.innerHTML = "";
 
         if (results.length === 0) {
             resultsList.innerHTML = '<p class="text-gray-500">No analysis results to display.</p>';
@@ -248,33 +244,17 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
             listItem.innerHTML = `
-                        <p class="text-sm text-gray-500 mb-1">Line ${index + 1}:</p>
-                        <p class="text-lg mb-2"><strong class="text-gray-800">Sentiment:</strong> <span class="${sentimentClass}">${sentimentText}</span></p>
-                        <p class="text-md text-gray-700">Confidence: ${(result.confidence * 100).toFixed(2)}%</p>
-                        <p class="text-md text-gray-700">Evaluation Score: ${result.evaluation_score !== null ? result.evaluation_score : "N/A"}</p>
-                        <div class="mt-2 text-sm text-gray-600">
-                            <strong>Emotions:</strong>
-                            ${Object.entries(result)
-                    .map(([key, value]) => {
-                        if (
-                            [
-                                "joy",
-                                "anger",
-                                "sadness",
-                                "fear",
-                                "surprise",
-                                "disgust",
-                                "anticipation",
-                                "trust"
-                            ].includes(key)
-                        ) {
-                            return `<span>${key.charAt(0).toUpperCase() + key.slice(1)}: ${(value * 100).toFixed(0)}% </span>`;
-                        }
-                        return "";
-                    })
-                    .join("")}
-                        </div>
-                    `;
+                <p class="text-sm text-gray-500 mb-1">Line ${index + 1}:</p>
+                <p class="text-lg mb-2"><strong class="text-gray-800">Sentiment:</strong> <span class="${sentimentClass}">${sentimentText}</span></p>
+                <p class="text-md text-gray-700">Confidence: ${(result.confidence * 100).toFixed(2)}%</p>
+                <p class="text-md text-gray-700">Evaluation Score: ${result.evaluation_score !== null ? result.evaluation_score : "N/A"}</p>
+                <div class="mt-2 text-sm text-gray-600">
+                    <strong>Emotions:</strong>
+                    ${Object.entries(result.emotions || {})
+                        .map(([key, value]) => `<span>${key.charAt(0).toUpperCase() + key.slice(1)}: ${(value * 100).toFixed(0)}% </span>`)
+                        .join("")}
+                </div>
+            `;
             resultsList.appendChild(listItem);
         });
     }
@@ -283,10 +263,10 @@ document.addEventListener("DOMContentLoaded", () => {
         DOMElements.textInput.value = "";
         DOMElements.resultsSection.classList.add("hidden");
         DOMElements.clearButton.classList.add("hidden");
-        DOMElements.downloadButtonWrapper.classList.add("hidden"); // Hide the new wrapper
-        DOMElements.downloadOptions.classList.add("hidden"); // Ensure options are hidden
+        DOMElements.downloadButtonWrapper.classList.add("hidden");
+        DOMElements.downloadOptions.classList.add("hidden");
         hideError(DOMElements.errorMessageDiv);
-        resetMetricsDisplay(); // Clears evaluation data and metrics
+        resetMetricsDisplay();
         currentFile = null;
         DOMElements.fileInfo.classList.add("hidden");
         DOMElements.fileInfo.textContent = "";
@@ -297,16 +277,13 @@ document.addEventListener("DOMContentLoaded", () => {
         if (emotionPieChart) emotionPieChart.destroy();
         if (emotionRadarChart) emotionRadarChart.destroy();
         lastAnalysisResult = null;
-        // Ensure main tabs are reset to text input (optional, but good UX)
         DOMElements.tabButtons.forEach((btn) => btn.classList.remove("active"));
         DOMElements.tabContents.forEach((content) => content.classList.remove("active"));
         DOMElements.textTab.classList.add("active");
         DOMElements.textInputSection.classList.add("active");
     }
 
-    // Add this function to your utility functions section
     function setupComparativeAnalysis() {
-        // Add event listener for adding new comparison inputs
         DOMElements.addCompareInputBtn.addEventListener("click", () => {
             const inputCount = document.querySelectorAll(".compare-input-group").length;
             if (inputCount >= 4) {
@@ -329,7 +306,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
             DOMElements.compareInputsContainer.appendChild(newInputGroup);
 
-            // Show remove buttons when there's more than one input
             if (inputCount >= 1) {
                 document
                     .querySelectorAll(".remove-compare-input")
@@ -337,25 +313,21 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         });
 
-        // Event delegation for remove buttons
         DOMElements.compareInputsContainer.addEventListener("click", (e) => {
             if (e.target.classList.contains("remove-compare-input")) {
                 const inputGroup = e.target.closest(".compare-input-group");
                 inputGroup.remove();
 
-                // Update labels
                 document.querySelectorAll(".compare-input-group").forEach((group, index) => {
                     group.querySelector("label").textContent = `Text ${index + 1}:`;
                 });
 
-                // Hide remove buttons if only one input remains
                 if (document.querySelectorAll(".compare-input-group").length <= 1) {
                     document.querySelector(".remove-compare-input").classList.add("hidden");
                 }
             }
         });
 
-        // Analyze comparison button
         DOMElements.analyzeCompareButton.addEventListener("click", analyzeComparison);
     }
 
@@ -381,7 +353,6 @@ document.addEventListener("DOMContentLoaded", () => {
         try {
             const analyses = [];
 
-            // Analyze each text
             for (const text of texts) {
                 try {
                     const analysis = await getSentimentAnalysis(text);
@@ -389,7 +360,6 @@ document.addEventListener("DOMContentLoaded", () => {
                     console.log(`Analysis completed for text: ${text.substring(0, 50)}...`);
                 } catch (error) {
                     console.error(`Error analyzing text: ${text.substring(0, 50)}...`, error);
-                    // Push a placeholder with error information
                     analyses.push({
                         error: true,
                         message: error.message,
@@ -400,7 +370,6 @@ document.addEventListener("DOMContentLoaded", () => {
                     });
                 }
             }
-            // Display comparison results
             displayComparisonResults(texts, analyses);
         } catch (error) {
             displayError(
@@ -414,7 +383,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function displayComparisonResults(texts, analyses) {
-        // Update table headers
         for (let i = 1; i <= 4; i++) {
             const header = document.getElementById(`compare-header-${i}`);
             const sentimentCell = document.getElementById(`compare-sentiment-${i}`);
@@ -422,18 +390,14 @@ document.addEventListener("DOMContentLoaded", () => {
             const emotionCell = document.getElementById(`compare-emotion-${i}`);
 
             if (i <= texts.length) {
-                // Show columns for texts we have
                 header.classList.remove("hidden");
                 sentimentCell.classList.remove("hidden");
                 scoreCell.classList.remove("hidden");
                 emotionCell.classList.remove("hidden");
 
-                // Truncate text for display
-                const displayText =
-                    texts[i - 1].length > 20 ? texts[i - 1].substring(0, 17) + "..." : texts[i - 1];
+                const displayText = texts[i - 1].length > 20 ? texts[i - 1].substring(0, 17) + "..." : texts[i - 1];
                 header.textContent = displayText;
             } else {
-                // Hide Unused columns
                 header.classList.add("hidden");
                 sentimentCell.classList.add("hidden");
                 scoreCell.classList.add("hidden");
@@ -441,57 +405,41 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         }
 
-        // Update comparison table data
         analyses.forEach((analysis, index) => {
             const sentimentCell = document.getElementById(`compare-sentiment-${index + 1}`);
             const scoreCell = document.getElementById(`compare-score-${index + 1}`);
             const emotionCell = document.getElementById(`compare-emotion-${index + 1}`);
 
             if (analysis.error) {
-                // Handle error case
                 sentimentCell.textContent = "Error";
                 scoreCell.textContent = "N/A";
                 emotionCell.textContent = "N/A";
                 console.error(`Error for text ${index + 1}:`, analysis.message);
             } else {
-                // Normal case
-                sentimentCell.textContent =
-                    analysis.overall_sentiment.charAt(0).toUpperCase() +
-                    analysis.overall_sentiment.slice(1);
-
+                sentimentCell.textContent = analysis.overall_sentiment.charAt(0).toUpperCase() + analysis.overall_sentiment.slice(1);
                 scoreCell.textContent = analysis.sentiment_score.toFixed(2);
 
-                // Find dominant emotion
                 const emotions = analysis.emotions;
                 if (emotions && Object.keys(emotions).length > 0) {
-                    const dominantEmotion = Object.entries(emotions).reduce((a, b) =>
-                        a[1] > b[1] ? a : b
-                    )[0];
-                    emotionCell.textContent =
-                        dominantEmotion.charAt(0).toUpperCase() + dominantEmotion.slice(1);
+                    const dominantEmotion = Object.entries(emotions).reduce((a, b) => a[1] > b[1] ? a : b)[0];
+                    emotionCell.textContent = dominantEmotion.charAt(0).toUpperCase() + dominantEmotion.slice(1);
                 } else {
                     emotionCell.textContent = "N/A";
                 }
             }
         });
 
-        // Update charts
         updateComparisonCharts(analyses);
-
-        // Show results section
         DOMElements.compareResults.classList.remove("hidden");
     }
 
     function updateComparisonCharts(analyses) {
-        // Destroy existing charts if they exist
         if (compareBarChart) compareBarChart.destroy();
         if (compareRadarChart) compareRadarChart.destroy();
 
-        // Prepare data for charts
         const labels = analyses.map((_, i) => `Text ${i + 1}`);
         const sentimentScores = analyses.map((a) => a.sentiment_score);
 
-        // Get all unique emotions across all analyses
         const allEmotions = new Set();
         analyses.forEach((a) => {
             if (a.emotions) {
@@ -500,7 +448,6 @@ document.addEventListener("DOMContentLoaded", () => {
         });
         const emotionLabels = Array.from(allEmotions);
 
-        // Prepare radar chart data
         const radarDatasets = analyses.map((a, i) => {
             const emotionValues = emotionLabels.map((emotion) =>
                 a.emotions && a.emotions[emotion] ? a.emotions[emotion] * 100 : 0
@@ -518,41 +465,27 @@ document.addEventListener("DOMContentLoaded", () => {
             };
         });
 
-        // Bar Chart - Sentiment Scores
         const barCtx = document.getElementById("compareBarChart").getContext("2d");
         compareBarChart = new Chart(barCtx, {
             type: "bar",
             data: {
                 labels: labels,
-                datasets: [
-                    {
-                        label: "Sentiment Score",
-                        data: sentimentScores,
-                        backgroundColor: labels.map((_, i) => getColorForIndex(i, 0.7)),
-                        borderColor: labels.map((_, i) => getColorForIndex(i)),
-                        borderWidth: 1
-                    }
-                ]
+                datasets: [{
+                    label: "Sentiment Score",
+                    data: sentimentScores,
+                    backgroundColor: labels.map((_, i) => getColorForIndex(i, 0.7)),
+                    borderColor: labels.map((_, i) => getColorForIndex(i)),
+                    borderWidth: 1
+                }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                scales: {
-                    y: {
-                        beginAtZero: false,
-                        min: -1,
-                        max: 1
-                    }
-                },
-                plugins: {
-                    legend: {
-                        display: false
-                    }
-                }
+                scales: { y: { beginAtZero: false, min: -1, max: 1 } },
+                plugins: { legend: { display: false } }
             }
         });
 
-        // Radar Chart - Emotion Profiles
         const radarCtx = document.getElementById("compareRadarChart").getContext("2d");
         compareRadarChart = new Chart(radarCtx, {
             type: "radar",
@@ -563,32 +496,27 @@ document.addEventListener("DOMContentLoaded", () => {
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                scales: {
-                    r: {
-                        beginAtZero: true,
-                        max: 100
-                    }
-                }
+                scales: { r: { beginAtZero: true, max: 100 } }
             }
         });
     }
 
-    // Helper function to get consistent colors for each text in comparison
     function getColorForIndex(index, opacity = 1) {
         const colors = [
-            `rgba(75, 192, 192, ${opacity})`, // Teal
-            `rgba(255, 99, 132, ${opacity})`, // Red
-            `rgba(54, 162, 235, ${opacity})`, // Blue
-            `rgba(255, 206, 86, ${opacity})` // Yellow
+            `rgba(75, 192, 192, ${opacity})`,
+            `rgba(255, 99, 132, ${opacity})`,
+            `rgba(54, 162, 235, ${opacity})`,
+            `rgba(255, 206, 86, ${opacity})`
         ];
         return colors[index % colors.length];
     }
+
     function saveToHistory(analysisData, title = "Single text analysis", isBatch = false, batchItems = []) {
         const historyItem = {
             id: Date.now().toString(),
             timestamp: new Date().toISOString(),
             title: title,
-            text: analysisData.text || "", // Store the original text if available
+            text: analysisData.text || "",
             overall_sentiment: analysisData.overall_sentiment,
             sentiment_score: analysisData.sentiment_score,
             emotions: analysisData.emotions,
@@ -604,7 +532,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         const history = JSON.parse(localStorage.getItem("sentimentAnalysisHistory")) || [];
-        history.unshift(historyItem); // Add new item to beginning of array
+        history.unshift(historyItem);
         localStorage.setItem("sentimentAnalysisHistory", JSON.stringify(history));
     }
 
@@ -616,7 +544,6 @@ document.addEventListener("DOMContentLoaded", () => {
         DOMElements.metricsResultsSection.classList.add("hidden");
         hideError(DOMElements.evalErrorMessageDiv);
 
-        // Reset Confusion Matrix
         document.getElementById("cm-pp").textContent = 0;
         document.getElementById("cm-pn").textContent = 0;
         document.getElementById("cm-p-neu").textContent = 0;
@@ -627,10 +554,7 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById("cm-neu-n").textContent = 0;
         document.getElementById("cm-neu-neu").textContent = 0;
 
-        // Reset Overall Metrics
         DOMElements.accuracyScoreSpan.textContent = "N/A";
-
-        // Reset Class Metrics
         DOMElements.posPrecisionSpan.textContent = "N/A";
         DOMElements.posRecallSpan.textContent = "N/A";
         DOMElements.posF1Span.textContent = "N/A";
@@ -646,7 +570,6 @@ document.addEventListener("DOMContentLoaded", () => {
         try {
             let imageData = null;
 
-            // Handle Chart.js instances
             if (chartId === "emotionBarChart" && emotionBarChart) {
                 imageData = emotionBarChart.toBase64Image("image/jpeg", 0.95);
                 console.log("✓ Bar chart captured, size:", imageData.length);
@@ -658,7 +581,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 console.log("✓ Radar chart captured, size:", imageData.length);
             }
 
-            // Fallback: try to get canvas directly
             if (!imageData) {
                 const chartCanvas = document.getElementById(chartId);
                 if (chartCanvas && chartCanvas.toDataURL) {
@@ -676,14 +598,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // --- API Interaction ---
     async function getSentimentAnalysis(text) {
-        const prompt = `Analyze sentiment of: "${text}"`;
-
         try {
-            console.log("🔄 Step 1: Sending request to local backend server...");
+            console.log("🔄 Sending request to backend server...");
             console.log("📍 Backend URL:", API_ENDPOINT);
             console.log("📝 Text:", text);
 
-            // Create timeout promise
             const timeoutPromise = new Promise((_, reject) =>
                 setTimeout(() => reject(new Error("Backend request timed out after 30 seconds.")), 30000)
             );
@@ -693,11 +612,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 headers: {
                     "Content-Type": "application/json"
                 },
-                body: JSON.stringify({
-                    text: text
-                })
+                body: JSON.stringify({ text: text })
             }).then(async response => {
-                console.log("🔄 Step 2: Got response status:", response.status);
+                console.log("🔄 Got response status:", response.status);
                 const responseText = await response.text();
                 console.log("📝 Raw response:", responseText.substring(0, 300) + "...");
 
@@ -713,18 +630,16 @@ document.addEventListener("DOMContentLoaded", () => {
             });
 
             const result = await Promise.race([apiCall, timeoutPromise]);
-            console.log("🔄 Step 3: Parsed result:", result);
+            console.log("🔄 Parsed result:", result);
 
             if (!result) {
                 throw new Error("Empty response from backend");
             }
 
-            // Check for error in response
             if (result.error) {
                 throw new Error(result.error);
             }
 
-            // Validate the response structure
             if (!result.overall_sentiment || !result.emotions || !result.keywords) {
                 console.error("❌ Invalid response structure:", result);
                 throw new Error("Backend response missing required fields: overall_sentiment, emotions, or keywords");
@@ -738,11 +653,11 @@ document.addEventListener("DOMContentLoaded", () => {
             const errorMsg = error.message || "Unknown error";
 
             if (errorMsg.includes("Failed to fetch") || errorMsg.includes("CORS")) {
-                throw new Error("Cannot connect to backend server. Make sure backend.py is running on port 5000");
+                throw new Error("Cannot connect to backend server. Make sure the backend is running and CORS is configured.");
             }
 
             if (errorMsg.includes("401") || errorMsg.includes("Unauthorized")) {
-                throw new Error("Backend authentication error. Check API token.");
+                throw new Error("Backend authentication error.");
             }
 
             throw new Error(errorMsg);
@@ -756,41 +671,31 @@ document.addEventListener("DOMContentLoaded", () => {
 
             console.log("Displaying results:", { overall_sentiment, sentiment_score, emotions, keywords });
 
-            // Validate the data
             if (!overall_sentiment || !emotions || !Array.isArray(keywords)) {
                 throw new Error("Invalid data structure in displaySentimentResults");
             }
 
-            // Save the original text with the analysis data
             data.text = DOMElements.textInput.value.trim();
-
-            // Save to history
             saveToHistory(data);
 
-            // Display overall sentiment
             DOMElements.overallSentimentSpan.textContent =
                 overall_sentiment.charAt(0).toUpperCase() + overall_sentiment.slice(1);
 
-            // Handle sentiment score - convert to number if it's a string
             const numScore = typeof sentiment_score === 'string' ? parseFloat(sentiment_score) : sentiment_score;
             DOMElements.sentimentScoreSpan.textContent = numScore.toFixed(2);
 
-            // Update result box color based on overall sentiment
-            DOMElements.sentimentResultBox.className = "result-box"; // Reset classes
+            DOMElements.sentimentResultBox.className = "result-box";
             DOMElements.sentimentResultBox.classList.add(overall_sentiment);
 
-            // Display emotional tone (strongest emotion)
             const sortedEmotions = Object.entries(emotions).sort(([, a], [, b]) => b - a);
             DOMElements.emotionalToneSpan.textContent =
                 sortedEmotions.length > 0
                     ? sortedEmotions[0][0].charAt(0).toUpperCase() + sortedEmotions[0][0].slice(1)
                     : "N/A";
 
-            // Display emotions as tags
             DOMElements.emotionsContainer.innerHTML = "";
             for (const [emotion, score] of sortedEmotions) {
                 if (score > 0) {
-                    // Only show emotions with a score > 0
                     const emotionTag = document.createElement("span");
                     emotionTag.className = "emotion-tag";
                     emotionTag.textContent = `${emotion.charAt(0).toUpperCase() + emotion.slice(1)} (${(score * 100).toFixed(0)}%)`;
@@ -798,30 +703,28 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
             }
 
-            // Display sentiment-driving keywords
             DOMElements.keywordsContainer.innerHTML = "";
             if (keywords && Array.isArray(keywords)) {
                 keywords.forEach((kw) => {
                     const keywordSpan = document.createElement("span");
                     keywordSpan.className = `inline-block px-3 py-1 rounded-full text-sm font-semibold mr-2 mb-2
-                                                         ${kw.sentiment === "positive"
-                            ? "bg-green-200 text-green-800"
-                            : kw.sentiment === "negative"
-                                ? "bg-red-200 text-red-800"
-                                : "bg-gray-200 text-gray-800"
-                        }`;
+                                             ${kw.sentiment === "positive"
+                                                ? "bg-green-200 text-green-800"
+                                                : kw.sentiment === "negative"
+                                                    ? "bg-red-200 text-red-800"
+                                                    : "bg-gray-200 text-gray-800"
+                                            }`;
                     keywordSpan.textContent = `${kw.keyword} (${(kw.relevance * 100).toFixed(0)}%)`;
                     DOMElements.keywordsContainer.appendChild(keywordSpan);
                 });
             }
 
-            // Update charts
             updateCharts(emotions);
 
             DOMElements.resultsSection.classList.remove("hidden");
             DOMElements.clearButton.classList.remove("hidden");
-            DOMElements.downloadButtonWrapper.classList.remove("hidden"); // Show the new wrapper
-            lastAnalysisResult = data; // Store data for download
+            DOMElements.downloadButtonWrapper.classList.remove("hidden");
+            lastAnalysisResult = data;
 
             console.log("✓ Results displayed successfully");
         } catch (error) {
@@ -836,14 +739,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function updateCharts(emotions) {
         const emotionLabels = Object.keys(emotions);
-        const emotionData = Object.values(emotions).map((score) => score * 100); // Scale to 100
+        const emotionData = Object.values(emotions).map((score) => score * 100);
 
-        // Destroy existing chart instances if they exist
         if (emotionBarChart) emotionBarChart.destroy();
         if (emotionPieChart) emotionPieChart.destroy();
         if (emotionRadarChart) emotionRadarChart.destroy();
 
-        // Bar Chart
         const barCtx = document.getElementById("emotionBarChart").getContext("2d");
         const barCanvas = document.getElementById("emotionBarChart");
         barCanvas.style.backgroundColor = "white";
@@ -851,46 +752,26 @@ document.addEventListener("DOMContentLoaded", () => {
             type: "bar",
             data: {
                 labels: emotionLabels,
-                datasets: [
-                    {
-                        label: "Emotion Intensity (%)",
-                        data: emotionData,
-                        backgroundColor: ["#FF6384", "#36A2EB", "#FFCE56", "#4BC0C0", "#9966FF", "#FF9F40"],
-                        borderColor: ["#FF6384", "#36A2EB", "#FFCE56", "#4BC0C0", "#9966FF", "#FF9F40"],
-                        borderWidth: 1
-                    }
-                ]
+                datasets: [{
+                    label: "Emotion Intensity (%)",
+                    data: emotionData,
+                    backgroundColor: ["#FF6384", "#36A2EB", "#FFCE56", "#4BC0C0", "#9966FF", "#FF9F40"],
+                    borderColor: ["#FF6384", "#36A2EB", "#FFCE56", "#4BC0C0", "#9966FF", "#FF9F40"],
+                    borderWidth: 1
+                }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
                 backgroundColor: "white",
                 scales: {
-                    y: {
-                        beginAtZero: true,
-                        max: 100, // Emotions are percentages
-                        grid: {
-                            color: "rgba(0,0,0,0.1)"
-                        }
-                    },
-                    x: {
-                        grid: {
-                            display: false
-                        }
-                    }
+                    y: { beginAtZero: true, max: 100, grid: { color: "rgba(0,0,0,0.1)" } },
+                    x: { grid: { display: false } }
                 },
-                plugins: {
-                    legend: {
-                        display: false
-                    },
-                    filler: {
-                        propagate: true
-                    }
-                }
+                plugins: { legend: { display: false } }
             }
         });
 
-        // Pie Chart
         const pieCtx = document.getElementById("emotionPieChart").getContext("2d");
         const pieCanvas = document.getElementById("emotionPieChart");
         pieCanvas.style.backgroundColor = "white";
@@ -898,38 +779,24 @@ document.addEventListener("DOMContentLoaded", () => {
             type: "pie",
             data: {
                 labels: emotionLabels,
-                datasets: [
-                    {
-                        data: emotionData,
-                        backgroundColor: ["#FF6384", "#36A2EB", "#FFCE56", "#4BC0C0", "#9966FF", "#FF9F40"],
-                        borderColor: "#ffffff",
-                        borderWidth: 2,
-                        hoverOffset: 4
-                    }
-                ]
+                datasets: [{
+                    data: emotionData,
+                    backgroundColor: ["#FF6384", "#36A2EB", "#FFCE56", "#4BC0C0", "#9966FF", "#FF9F40"],
+                    borderColor: "#ffffff",
+                    borderWidth: 2,
+                    hoverOffset: 4
+                }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
                 backgroundColor: "white",
                 plugins: {
-                    legend: {
-                        position: "right",
-                        labels: {
-                            padding: 15,
-                            font: {
-                                size: 12
-                            }
-                        }
-                    },
-                    filler: {
-                        propagate: true
-                    }
+                    legend: { position: "right", labels: { padding: 15, font: { size: 12 } } }
                 }
             }
         });
 
-        // Radar Chart
         const radarCtx = document.getElementById("emotionRadarChart").getContext("2d");
         const radarCanvas = document.getElementById("emotionRadarChart");
         radarCanvas.style.backgroundColor = "white";
@@ -937,36 +804,25 @@ document.addEventListener("DOMContentLoaded", () => {
             type: "radar",
             data: {
                 labels: emotionLabels,
-                datasets: [
-                    {
-                        label: "Emotion Profile",
-                        data: emotionData,
-                        backgroundColor: "rgba(75, 192, 192, 0.25)",
-                        borderColor: "#1E40AF",
-                        borderWidth: 2,
-                        pointBackgroundColor: "#1E40AF",
-                        pointBorderColor: "#1E40AF",
-                        pointHoverBackgroundColor: "#fff",
-                        pointHoverBorderColor: "#1E40AF",
-                        tension: 0.1
-                    }
-                ]
+                datasets: [{
+                    label: "Emotion Profile",
+                    data: emotionData,
+                    backgroundColor: "rgba(75, 192, 192, 0.25)",
+                    borderColor: "#1E40AF",
+                    borderWidth: 2,
+                    pointBackgroundColor: "#1E40AF",
+                    pointBorderColor: "#1E40AF",
+                    pointHoverBackgroundColor: "#fff",
+                    pointHoverBorderColor: "#1E40AF",
+                    tension: 0.1
+                }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
                 backgroundColor: "white",
-                scales: {
-                    r: {
-                        beginAtZero: true,
-                        max: 100 // Emotions are percentages
-                    }
-                },
-                plugins: {
-                    legend: {
-                        display: false
-                    }
-                }
+                scales: { r: { beginAtZero: true, max: 100 } },
+                plugins: { legend: { display: false } }
             }
         });
     }
@@ -987,25 +843,20 @@ document.addEventListener("DOMContentLoaded", () => {
     function setupVizTabs() {
         DOMElements.vizTabButtons.forEach((button) => {
             button.addEventListener("click", () => {
-                // Remove active class from all viz tab buttons
                 DOMElements.vizTabButtons.forEach((btn) => btn.classList.remove("active"));
-                // Hide all viz tab contents
                 DOMElements.vizTabContents.forEach((content) => content.classList.remove("active"));
 
-                // Add active class to clicked button
                 button.classList.add("active");
-                // Show the corresponding viz tab content
                 document.getElementById(button.dataset.tab).classList.add("active");
             });
         });
     }
 
-    // --- File Upload & Batch Processing ---
+    // --- File Upload Setup ---
     function setupFileUpload() {
         const handleFile = (file) => {
             if (!file) return;
 
-            // Validate file type
             const validTypes = ["text/plain", "text/csv", "application/json"];
             if (!validTypes.includes(file.type) && !file.name.match(/\.(txt|csv|json)$/i)) {
                 displayError(
@@ -1052,7 +903,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         showLoading(DOMElements.fileButtonText, DOMElements.fileLoadingIndicator);
         hideError(DOMElements.errorMessageDiv);
-        DOMElements.batchResultsList.innerHTML = ""; // Clear previous results
+        DOMElements.batchResultsList.innerHTML = "";
         DOMElements.batchResults.classList.remove("hidden");
 
         const reader = new FileReader();
@@ -1069,38 +920,39 @@ document.addEventListener("DOMContentLoaded", () => {
                 lines = lines.slice(0, BATCH_ANALYSIS_LIMIT);
             }
 
+            batchResults = [];
+
             for (const line of lines) {
                 const listItem = document.createElement("div");
                 listItem.className = "batch-result-item flex items-center justify-between py-2";
 
                 const textSpan = document.createElement("span");
                 textSpan.textContent = line.length > 50 ? line.substring(0, 47) + "..." : line;
-                textSpan.className = "text-gray-700 truncate flex-grow"; // Added truncate and flex-grow
+                textSpan.className = "text-gray-700 truncate flex-grow";
 
                 const sentimentSpan = document.createElement("span");
                 sentimentSpan.className = "ml-4 px-3 py-1 rounded-full text-xs font-semibold";
                 sentimentSpan.textContent = "Analyzing...";
-                sentimentSpan.classList.add("bg-gray-200", "text-gray-800"); // Default styling
+                sentimentSpan.classList.add("bg-gray-200", "text-gray-800");
 
                 listItem.appendChild(textSpan);
                 listItem.appendChild(sentimentSpan);
                 DOMElements.batchResultsList.appendChild(listItem);
-                DOMElements.batchResultsList.scrollTop = DOMElements.batchResultsList.scrollHeight; // Scroll to bottom
+                DOMElements.batchResultsList.scrollTop = DOMElements.batchResultsList.scrollHeight;
 
                 try {
                     const result = await getSentimentAnalysis(line);
                     sentimentSpan.textContent =
                         result.overall_sentiment.charAt(0).toUpperCase() +
                         result.overall_sentiment.slice(1);
-                    sentimentSpan.classList.remove("bg-gray-200", "text-gray-800"); // Remove default
+                    sentimentSpan.classList.remove("bg-gray-200", "text-gray-800");
                     sentimentSpan.classList.add(
                         result.overall_sentiment === "positive"
                             ? "bg-green-200 text-green-800"
                             : result.overall_sentiment === "negative"
                                 ? "bg-red-200 text-red-800"
-                                : "bg-yellow-200 text-yellow-800" // Neutral often yellow/orange
+                                : "bg-yellow-200 text-yellow-800"
                     );
-                    // Store batch result
                     batchResults.push({
                         text: line,
                         sentiment: result.overall_sentiment,
@@ -1113,16 +965,16 @@ document.addEventListener("DOMContentLoaded", () => {
                     console.error(`Error analyzing line "${line}":`, error);
                 }
             }
-            // Save batch analysis to history
+
             if (batchResults.length > 0) {
                 const batchTitle = `Batch analysis (${batchResults.length} items)`;
                 const firstItem = batchResults[0];
                 saveToHistory(
                     {
-                        overall_sentiment: firstItem.sentiment, // Just use first item's sentiment as placeholder
+                        overall_sentiment: firstItem.sentiment,
                         sentiment_score: firstItem.score,
-                        emotions: {}, // Not available in batch mode
-                        keywords: [] // Not available in batch mode
+                        emotions: {},
+                        keywords: []
                     },
                     batchTitle,
                     true,
@@ -1138,7 +990,7 @@ document.addEventListener("DOMContentLoaded", () => {
         reader.readAsText(currentFile);
     }
 
-    // --- Download & Export Logic ---
+    // --- Download Functions ---
     function showDownloadOptions() {
         DOMElements.downloadOptions.classList.toggle("hidden");
     }
@@ -1152,9 +1004,8 @@ document.addEventListener("DOMContentLoaded", () => {
             const margin = 15;
             let yPos = margin;
 
-            // ===== PAGE 1: TITLE & SUMMARY =====
             doc.setFontSize(28);
-            doc.setTextColor(30, 64, 175); // Indigo
+            doc.setTextColor(30, 64, 175);
             doc.text("Sentiment Analysis Report", pageWidth / 2, yPos, { align: "center" });
             yPos += 15;
 
@@ -1163,8 +1014,6 @@ document.addEventListener("DOMContentLoaded", () => {
             doc.line(margin, yPos, pageWidth - margin, yPos);
             yPos += 10;
 
-            // Summary box
-            const summaryBoxY = yPos;
             doc.setFillColor(230, 240, 255);
             doc.rect(margin, yPos, pageWidth - 2 * margin, 50, "F");
 
@@ -1186,7 +1035,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
             yPos += 60;
 
-            // ===== OVERALL SENTIMENT SECTION =====
             doc.setFontSize(16);
             doc.setFont(undefined, "bold");
             doc.setTextColor(30, 64, 175);
@@ -1213,20 +1061,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 head: [["Metric", "Value"]],
                 body: overallSentimentData,
                 theme: "grid",
-                styles: {
-                    fontSize: 10,
-                    cellPadding: 4,
-                    halign: "left"
-                },
-                headStyles: {
-                    fillColor: [30, 64, 175],
-                    textColor: 255,
-                    fontStyle: "bold",
-                    fontSize: 11
-                },
-                bodyStyles: {
-                    alternateRowStyles: { fillColor: [245, 245, 245] }
-                },
+                styles: { fontSize: 10, cellPadding: 4, halign: "left" },
+                headStyles: { fillColor: [30, 64, 175], textColor: 255, fontStyle: "bold", fontSize: 11 },
+                bodyStyles: { alternateRowStyles: { fillColor: [245, 245, 245] } },
                 margin: { left: margin, right: margin },
                 columnStyles: {
                     0: { cellWidth: 80 },
@@ -1236,13 +1073,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
             yPos = doc.lastAutoTable.finalY + 12;
 
-            // Check if we need new page
             if (yPos > pageHeight - 60) {
                 doc.addPage();
                 yPos = margin;
             }
 
-            // ===== EMOTIONS SECTION =====
             doc.setFontSize(16);
             doc.setFont(undefined, "bold");
             doc.setTextColor(30, 64, 175);
@@ -1265,20 +1100,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 head: [["Emotion", "Intensity"]],
                 body: emotionRows,
                 theme: "grid",
-                styles: {
-                    fontSize: 10,
-                    cellPadding: 4,
-                    halign: "left"
-                },
-                headStyles: {
-                    fillColor: [30, 64, 175],
-                    textColor: 255,
-                    fontStyle: "bold",
-                    fontSize: 11
-                },
-                bodyStyles: {
-                    alternateRowStyles: { fillColor: [245, 245, 245] }
-                },
+                styles: { fontSize: 10, cellPadding: 4, halign: "left" },
+                headStyles: { fillColor: [30, 64, 175], textColor: 255, fontStyle: "bold", fontSize: 11 },
+                bodyStyles: { alternateRowStyles: { fillColor: [245, 245, 245] } },
                 margin: { left: margin, right: margin },
                 columnStyles: {
                     0: { cellWidth: 80 },
@@ -1293,7 +1117,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 yPos = margin;
             }
 
-            // ===== KEYWORDS SECTION =====
             doc.setFontSize(16);
             doc.setFont(undefined, "bold");
             doc.setTextColor(30, 64, 175);
@@ -1317,19 +1140,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 head: [["Keyword", "Sentiment", "Relevance Score"]],
                 body: keywordRows,
                 theme: "grid",
-                styles: {
-                    fontSize: 10,
-                    cellPadding: 4
-                },
-                headStyles: {
-                    fillColor: [30, 64, 175],
-                    textColor: 255,
-                    fontStyle: "bold",
-                    fontSize: 11
-                },
-                bodyStyles: {
-                    alternateRowStyles: { fillColor: [245, 245, 245] }
-                },
+                styles: { fontSize: 10, cellPadding: 4 },
+                headStyles: { fillColor: [30, 64, 175], textColor: 255, fontStyle: "bold", fontSize: 11 },
+                bodyStyles: { alternateRowStyles: { fillColor: [245, 245, 245] } },
                 margin: { left: margin, right: margin },
                 columnStyles: {
                     0: { cellWidth: pageWidth - 2 * margin - 100 },
@@ -1345,8 +1158,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 yPos = margin;
             }
 
-            // ===== CHARTS PAGE =====
-            // Get chart images after a longer delay to ensure full rendering
             console.log("Waiting for charts to fully render...");
             await new Promise(resolve => setTimeout(resolve, 1500));
 
@@ -1377,7 +1188,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 let chartYPos = yPos;
 
-                // Bar Chart (Full Width)
                 if (barChartImage) {
                     try {
                         doc.setFontSize(11);
@@ -1394,7 +1204,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 chartYPos += 10;
 
-                // Pie & Radar Side by Side
                 const sideChartWidth = (pageWidth - 3 * margin) / 2;
                 const sideChartHeight = 70;
                 let sideChartX = margin;
@@ -1405,9 +1214,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         doc.setFont(undefined, "bold");
                         doc.setTextColor(0, 0, 0);
                         doc.text("Emotion Distribution", sideChartX + 2, chartYPos);
-                        console.log("Adding pie chart at:", { x: sideChartX, y: chartYPos + 5, width: sideChartWidth, height: sideChartHeight });
                         doc.addImage(pieChartImage, "JPEG", sideChartX, chartYPos + 5, sideChartWidth, sideChartHeight);
-                        console.log("✓ Pie chart added successfully");
                         sideChartX += sideChartWidth + margin;
                     } catch (err) {
                         console.warn("Failed to add pie chart:", err);
@@ -1421,16 +1228,13 @@ document.addEventListener("DOMContentLoaded", () => {
                         doc.setFont(undefined, "bold");
                         doc.setTextColor(0, 0, 0);
                         doc.text("Emotion Profile Radar", sideChartX + 2, chartYPos);
-                        console.log("Adding radar chart at:", { x: sideChartX, y: chartYPos + 5, width: sideChartWidth, height: sideChartHeight });
                         doc.addImage(radarChartImage, "JPEG", sideChartX, chartYPos + 5, sideChartWidth, sideChartHeight);
-                        console.log("✓ Radar chart added successfully");
                     } catch (err) {
                         console.warn("Failed to add radar chart:", err);
                     }
                 }
             }
 
-            // ===== FOOTER =====
             const totalPages = doc.internal.pages.length;
             for (let i = 1; i < totalPages; i++) {
                 doc.setPage(i);
@@ -1497,7 +1301,7 @@ document.addEventListener("DOMContentLoaded", () => {
         URL.revokeObjectURL(url);
     }
 
-    // --- Model Evaluation Logic ---
+    // --- Model Evaluation Functions ---
     async function addToEvalData() {
         const text = DOMElements.evalTextInput.value.trim();
         const trueSentiment = DOMElements.trueSentimentSelect.value;
@@ -1544,10 +1348,10 @@ document.addEventListener("DOMContentLoaded", () => {
             li.className = "batch-result-item text-sm";
             const predictionClass = item.predicted === item.true ? "text-green-600" : "text-red-600";
             li.innerHTML = `
-                            <strong>Text:</strong> "${item.text.length > 70 ? item.text.substring(0, 67) + "..." : item.text}"<br>
-                            <strong>True:</strong> ${item.true.charAt(0).toUpperCase() + item.true.slice(1)},
-                            <strong>Predicted:</strong> <span class="${predictionClass}">${item.predicted.charAt(0).toUpperCase() + item.predicted.slice(1)}</span>
-                        `;
+                <strong>Text:</strong> "${item.text.length > 70 ? item.text.substring(0, 67) + "..." : item.text}"<br>
+                <strong>True:</strong> ${item.true.charAt(0).toUpperCase() + item.true.slice(1)},
+                <strong>Predicted:</strong> <span class="${predictionClass}">${item.predicted.charAt(0).toUpperCase() + item.predicted.slice(1)}</span>
+            `;
             DOMElements.evalList.appendChild(li);
         });
     }
@@ -1575,10 +1379,7 @@ document.addEventListener("DOMContentLoaded", () => {
         let correctPredictions = 0;
 
         evaluationData.forEach((item) => {
-            if (
-                confusionMatrix[item.predicted] &&
-                confusionMatrix[item.predicted][item.true] !== undefined
-            ) {
+            if (confusionMatrix[item.predicted] && confusionMatrix[item.predicted][item.true] !== undefined) {
                 confusionMatrix[item.predicted][item.true]++;
             }
             if (item.predicted === item.true) {
@@ -1586,7 +1387,6 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         });
 
-        // Update confusion matrix table
         document.getElementById("cm-pp").textContent = confusionMatrix.positive.positive;
         document.getElementById("cm-pn").textContent = confusionMatrix.positive.negative;
         document.getElementById("cm-p-neu").textContent = confusionMatrix.positive.neutral;
@@ -1597,24 +1397,17 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById("cm-neu-n").textContent = confusionMatrix.neutral.negative;
         document.getElementById("cm-neu-neu").textContent = confusionMatrix.neutral.neutral;
 
-        // Calculate Overall Accuracy
         const accuracy = correctPredictions / evaluationData.length;
         DOMElements.accuracyScoreSpan.textContent = (accuracy * 100).toFixed(2) + "%";
 
-        // Calculate Precision, Recall, F1-Score per class
         function calculateClassMetrics(className) {
             const tp = confusionMatrix[className][className];
-            // FP for a class is the sum of predictions *as that class* where the true label was *different*.
             const fp = labels.reduce(
-                (sum, trueLabel) =>
-                    sum + (trueLabel !== className ? confusionMatrix[className][trueLabel] || 0 : 0),
+                (sum, trueLabel) => sum + (trueLabel !== className ? confusionMatrix[className][trueLabel] || 0 : 0),
                 0
             );
-            // FN for a class is the sum of cases where the true label was *that class* but it was predicted *as a different class*.
             const fn = labels.reduce(
-                (sum, predictedLabel) =>
-                    sum +
-                    (predictedLabel !== className ? confusionMatrix[predictedLabel][className] || 0 : 0),
+                (sum, predictedLabel) => sum + (predictedLabel !== className ? confusionMatrix[predictedLabel][className] || 0 : 0),
                 0
             );
 
@@ -1641,6 +1434,28 @@ document.addEventListener("DOMContentLoaded", () => {
         DOMElements.neuF1Span.textContent = (neuMetrics.f1 * 100).toFixed(2) + "%";
     }
 
+    // --- Test API Connection ---
+    async function testAPIConnection() {
+        try {
+            console.log("Testing backend server connection...");
+            console.log("Connecting to:", HEALTH_CHECK_URL);
+            
+            const response = await fetch(HEALTH_CHECK_URL);
+
+            if (response.ok) {
+                const data = await response.json();
+                console.log("✓ Backend server is running and healthy!");
+                console.log("Response:", data);
+            } else {
+                throw new Error(`Health check failed with status ${response.status}`);
+            }
+        } catch (error) {
+            console.error("✗ Backend connection test failed:", error);
+            // Don't show error to user on initial load - they might be deploying
+            console.log("⚠️ If you're deploying, this is normal until backend is live.");
+        }
+    }
+
     // --- Event Listeners Setup ---
     function setupEventListeners() {
         DOMElements.analyzeButton.addEventListener("click", async () => {
@@ -1660,11 +1475,10 @@ document.addEventListener("DOMContentLoaded", () => {
                 return;
             }
             console.log("✓ Text validation passed");
-            hideError(DOMElements.errorMessageDiv); // Clear error messages
-            // Only hide results if a new analysis is starting from scratch (i.e., not a chart tab click)
+            hideError(DOMElements.errorMessageDiv);
             DOMElements.resultsSection.classList.add("hidden");
             DOMElements.clearButton.classList.add("hidden");
-            DOMElements.downloadButtonWrapper.classList.add("hidden"); // Hide the new wrapper
+            DOMElements.downloadButtonWrapper.classList.add("hidden");
 
             console.log("🔄 Showing loading spinner...");
             showLoading(DOMElements.buttonText, DOMElements.loadingIndicator);
@@ -1688,11 +1502,10 @@ document.addEventListener("DOMContentLoaded", () => {
         DOMElements.clearButton.addEventListener("click", resetUI);
 
         DOMElements.downloadReportButton.addEventListener("click", (e) => {
-            e.stopPropagation(); // Prevent document click from immediately closing options
+            e.stopPropagation();
             showDownloadOptions();
         });
 
-        // Corrected: Close download options when clicking anywhere outside
         document.addEventListener("click", (e) => {
             if (!DOMElements.downloadButtonWrapper.contains(e.target)) {
                 DOMElements.downloadOptions.classList.add("hidden");
@@ -1701,7 +1514,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         document.querySelectorAll(".download-option-btn").forEach((button) => {
             button.addEventListener("click", () => {
-                DOMElements.downloadOptions.classList.add("hidden"); // Hide options after selection
+                DOMElements.downloadOptions.classList.add("hidden");
                 if (!lastAnalysisResult) {
                     displayError(
                         "No analysis result to download.",
@@ -1727,52 +1540,26 @@ document.addEventListener("DOMContentLoaded", () => {
         DOMElements.calculateMetricsButton.addEventListener("click", calculateAndDisplayMetrics);
     }
 
-    // --- Test API Connection ---
-    async function testAPIConnection() {
-        try {
-            console.log("Testing backend server connection...");
-            const response = await fetch(HEALTH_CHECK_URL);
-
-            if (response.ok) {
-                const data = await response.json();
-                console.log("✓ Backend server is running and healthy!");
-                console.log("Response:", data);
-            } else {
-                throw new Error(`Health check failed with status ${response.status}`);
-            }
-        } catch (error) {
-            console.error("✗ Backend connection test failed:", error);
-            displayError(
-                "⚠️ Backend Server Not Found: Make sure backend.py is running. Open terminal and run: python backend.py",
-                DOMElements.errorMessageDiv,
-                DOMElements.errorTextSpan
-            );
-        }
-    }
-
     // --- Initialization ---
     function init() {
-        console.log("Initializing Sentiment Analyzer with Local Backend Server...");
+        console.log("Initializing Sentiment Analyzer...");
         console.log("Backend URL:", BACKEND_URL);
         console.log("API Endpoint:", API_ENDPOINT);
 
-        // Test backend connection
+        // Test backend connection (silent in production)
         testAPIConnection();
 
-        // Ensure loading indicators are hidden on initial load
         hideLoading(DOMElements.buttonText, DOMElements.loadingIndicator);
         hideLoading(DOMElements.fileButtonText, DOMElements.fileLoadingIndicator);
         hideLoading(DOMElements.evalButtonText, DOMElements.evalLoadingIndicator);
 
-        // Add to init() function
         setupComparativeAnalysis();
-        setupMainTabs(); // For main tabs (Text, File, Evaluation)
-        setupVizTabs(); // For visualization tabs (Emotion Intensity, Distribution, Profile)
+        setupMainTabs();
+        setupVizTabs();
         setupFileUpload();
         setupEventListeners();
-        DOMElements.analyzeFileButton.disabled = true; // Initially disable file analysis button
+        DOMElements.analyzeFileButton.disabled = true;
     }
 
-    // Run initialization when the DOM is fully loaded
     init();
 });
