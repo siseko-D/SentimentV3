@@ -1,0 +1,432 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Home - Sentiment Analysis Dashboard</title>
+    <link rel="icon" type="image/x-icon" href="images/sentiment_logo.jpg" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Font Awesome Library -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+        integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+    <link rel="stylesheet" href="css/style_2.css" />
+    <script>
+        // Tailwind CSS configuration
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        inter: ["Inter", "sans-serif"]
+                    }
+                }
+            }
+        };
+    </script>
+</head>
+
+<body class="font-inter">
+    <nav class="bg-gray-800 text-white shadow-md">
+        <div class="max-w-7xl mx-auto flex justify-between items-center px-4 py-4">
+            <a href="index.html"
+                class="text-3xl font-extrabold text-blue-300 hover:text-blue-200 transition duration-300">Sentiment
+                Analyzer</a>
+            <div>
+                <a href="html/about.html" class="ml-6 text-lg hover:text-blue-300 transition duration-300">About</a>
+                <a href="index.html" class="ml-6 text-lg font-bold text-blue-400">Dashboard</a>
+                <a href="html/history.html" class="ml-6 text-lg hover:text-blue-300 transition duration-300">History</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="main-content-wrapper">
+        <div class="dashboard-container">
+            <h1 class="text-4xl font-extrabold text-center text-gray-800 mb-6">Sentiment Analyzer</h1>
+
+            <div class="flex border-b-2 border-gray-200 mb-6 space-x-4">
+                <button id="text-tab" class="tab-button active" data-tab="text-input-section">Text Input</button>
+                <button id="file-tab" class="tab-button" data-tab="file-upload-section">Batch Processing</button>
+                <button id="evaluation-tab" class="tab-button" data-tab="evaluation-section">
+                    Model Evaluation
+                </button>
+                <!-- Add this to the tab navigation section (around line 180) -->
+                <button id="compare-tab" class="tab-button" data-tab="compare-section">Comparative Analysis</button>
+            </div>
+
+            <div id="text-input-section" class="tab-content active">
+                <div class="input-section">
+                    <label for="text-input" class="block text-gray-700 text-lg font-semibold mb-2">Enter your text
+                        here:</label>
+                    <textarea id="text-input"
+                        class="w-full p-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200"
+                        placeholder="e.g., 'The customer service was excellent, and the product exceeded my expectations!'"
+                        rows="6"></textarea>
+                </div>
+
+                <button id="analyze-button"
+                    class="bg-blue-600 text-white font-bold py-3 px-6 rounded-xl shadow-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 flex items-center justify-center">
+                    <span id="button-text"><i class="fa-solid fa-magnifying-glass-chart"></i> Analyze Sentiment</span>
+                    <span id="loading-indicator" class="loading-spinner hidden"></span>
+                </button>
+            </div>
+
+            <div id="file-upload-section" class="tab-content">
+                <div class="file-upload-container" id="file-upload-container">
+                    <label class="file-upload-label">
+                        <svg class="file-upload-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                            xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12">
+                            </path>
+                        </svg>
+                        <span class="text-gray-700 font-medium">Drag and drop your file here</span>
+                        <span class="text-gray-500 text-sm">or click to browse</span>
+                        <input type="file" id="file-input" class="hidden" accept=".txt,.csv,.json" />
+                    </label>
+                    <div id="file-info" class="file-info hidden"></div>
+                </div>
+
+                <p class="text-sm text-center text-gray-500 my-2">
+                    Note: For demonstration purposes, batch analysis is limited to the first 20 text entries in the
+                    file.
+                </p>
+
+                <button id="analyze-file-button"
+                    class="bg-blue-600 text-white font-bold py-3 px-6 rounded-xl shadow-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 flex items-center justify-center">
+                    <span id="file-button-text">Analyze File</span>
+                    <span id="file-loading-indicator" class="loading-spinner hidden"></span>
+                </button>
+
+                <div id="batch-results" class="batch-results hidden">
+                    <h3 class="text-lg font-semibold mb-2">Batch Analysis Results</h3>
+                    <div id="batch-results-list"></div>
+                </div>
+            </div>
+
+            <div id="evaluation-section" class="tab-content">
+                <h2 class="text-2xl font-bold text-gray-800 mb-3">Model Evaluation</h2>
+                <div class="input-section mb-4">
+                    <label for="eval-text-input" class="block text-gray-700 text-lg font-semibold mb-2">Text for
+                        Evaluation:</label>
+                    <textarea id="eval-text-input"
+                        class="w-full p-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200"
+                        placeholder="e.g., 'This product is terrible, I regret buying it.'" rows="3"></textarea>
+                </div>
+                <div class="input-section mb-6">
+                    <label for="true-sentiment-select" class="block text-gray-700 text-lg font-semibold mb-2">True
+                        Sentiment:</label>
+                    <select id="true-sentiment-select"
+                        class="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200 bg-white">
+                        <option value="">Select True Sentiment</option>
+                        <option value="positive">Positive</option>
+                        <option value="negative">Negative</option>
+                        <option value="neutral">Neutral</option>
+                    </select>
+                </div>
+                <button id="add-to-eval-button"
+                    class="bg-purple-600 text-white font-bold py-3 px-6 rounded-xl shadow-lg hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 flex items-center justify-center mb-6">
+                    <span id="eval-button-text">Add to Evaluation Data</span>
+                    <span id="eval-loading-indicator" class="loading-spinner hidden"></span>
+                </button>
+
+                <div id="evaluation-data-list" class="batch-results mb-6 hidden">
+                    <h3 class="text-lg font-semibold mb-2">Collected Evaluation Data:</h3>
+                    <ul id="eval-list" class="list-disc pl-5"></ul>
+                </div>
+
+                <button id="calculate-metrics-button"
+                    class="bg-green-600 text-white font-bold py-3 px-6 rounded-xl shadow-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 flex items-center justify-center mb-6 hidden">
+                    Calculate Performance Metrics
+                </button>
+
+                <div id="metrics-results-section" class="results-section mt-4 hidden">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-3">Performance Metrics:</h2>
+                    <div id="confusion-matrix-container" class="result-box mb-4">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-2">Confusion Matrix:</h3>
+                        <table id="confusion-matrix-table"
+                            class="min-w-full bg-white border border-gray-300 rounded-lg shadow-sm">
+                            <thead>
+                                <tr class="bg-gray-100">
+                                    <th class="py-2 px-4 border-b">Predicted \ True</th>
+                                    <th class="py-2 px-4 border-b">Positive</th>
+                                    <th class="py-2 px-4 border-b">Negative</th>
+                                    <th class="py-2 px-4 border-b">Neutral</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <th class="py-2 px-4 border-b">Positive</th>
+                                    <td id="cm-pp" class="py-2 px-4 border-b">0</td>
+                                    <td id="cm-pn" class="py-2 px-4 border-b">0</td>
+                                    <td id="cm-p-neu" class="py-2 px-4 border-b">0</td>
+                                </tr>
+                                <tr>
+                                    <th class="py-2 px-4 border-b">Negative</th>
+                                    <td id="cm-np" class="py-2 px-4 border-b">0</td>
+                                    <td id="cm-nn" class="py-2 px-4 border-b">0</td>
+                                    <td id="cm-n-neu" class="py-2 px-4 border-b">0</td>
+                                </tr>
+                                <tr>
+                                    <th class="py-2 px-4 border-b">Neutral</th>
+                                    <td id="cm-neu-p" class="py-2 px-4 border-b">0</td>
+                                    <td id="cm-neu-n" class="py-2 px-4 border-b">0</td>
+                                    <td id="cm-neu-neu" class="py-2 px-4 border-b">0</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div id="overall-metrics-container" class="result-box mb-4">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-2">Overall Metrics:</h3>
+                        <p class="text-gray-700 text-lg">
+                            <strong class="text-gray-900">Accuracy:</strong> <span id="accuracy-score">N/A</span>
+                        </p>
+                    </div>
+
+                    <div id="class-metrics-container" class="result-box">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-2">Metrics per Class:</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <h4 class="font-medium text-gray-800">Positive Class:</h4>
+                                <p>Precision: <span id="pos-precision">N/A</span></p>
+                                <p>Recall: <span id="pos-recall">N/A</span></p>
+                                <p>F1-Score: <span id="pos-f1">N/A</span></p>
+                            </div>
+                            <div>
+                                <h4 class="font-medium text-gray-800">Negative Class:</h4>
+                                <p>Precision: <span id="neg-precision">N/A</span></p>
+                                <p>Recall: <span id="neg-recall">N/A</span></p>
+                                <p>F1-Score: <span id="neg-f1">N/A</span></p>
+                            </div>
+                            <div>
+                                <h4 class="font-medium text-gray-800">Neutral Class:</h4>
+                                <p>Precision: <span id="neu-precision">N/A</span></p>
+                                <p>Recall: <span id="neu-recall">N/A</span></p>
+                                <p>F1-Score: <span id="neu-f1">N/A</span></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div id="eval-error-message"
+                    class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-lg mt-4 hidden" role="alert">
+                    <p class="font-bold">Error:</p>
+                    <p id="eval-error-text"></p>
+                </div>
+            </div>
+
+            <!-- Add this tab content section after the evaluation section (around line 400) -->
+            <div id="compare-section" class="tab-content">
+                <h2 class="text-2xl font-bold text-gray-800 mb-3">Comparative Analysis</h2>
+
+                <div class="mb-6">
+                    <div id="compare-inputs-container">
+                        <div class="compare-input-group mb-4">
+                            <label class="block text-gray-700 text-lg font-semibold mb-2">Text 1:</label>
+                            <textarea
+                                class="compare-text-input w-full p-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200"
+                                placeholder="Enter first text to compare" rows="3"></textarea>
+                            <button
+                                class="remove-compare-input bg-red-500 text-white py-1 px-3 rounded-lg text-sm mt-2 hidden">
+                                Remove
+                            </button>
+                        </div>
+                    </div>
+
+                    <button id="add-compare-input"
+                        class="bg-gray-200 text-gray-700 font-medium py-2 px-4 rounded-lg hover:bg-gray-300">
+                        + Add Another Text
+                    </button>
+                </div>
+
+                <button id="analyze-compare-button"
+                    class="bg-blue-600 text-white font-bold py-3 px-6 rounded-xl shadow-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 flex items-center justify-center">
+                    <span id="compare-button-text">Compare Texts</span>
+                    <span id="compare-loading-indicator" class="loading-spinner hidden"></span>
+                </button>
+
+                <div id="compare-results" class="mt-6 hidden">
+                    <h3 class="text-xl font-semibold text-gray-800 mb-4">Comparison Results</h3>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        <div class="bg-white p-4 rounded-xl shadow">
+                            <h4 class="font-bold text-lg mb-2">Sentiment Scores</h4>
+                            <div class="chart-container" style="height: 300px">
+                                <canvas id="compareBarChart"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="bg-white p-4 rounded-xl shadow">
+                            <h4 class="font-bold text-lg mb-2">Emotion Distribution</h4>
+                            <div class="chart-container" style="height: 300px">
+                                <canvas id="compareRadarChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-4 rounded-xl shadow">
+                        <h4 class="font-bold text-lg mb-2">Detailed Comparison</h4>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full bg-white border border-gray-200">
+                                <thead>
+                                    <tr class="bg-gray-100">
+                                        <th class="py-2 px-4 border-b text-left">Metric</th>
+                                        <th id="compare-header-1" class="py-2 px-4 border-b text-left">Text 1</th>
+                                        <th id="compare-header-2" class="py-2 px-4 border-b text-left hidden">
+                                            Text 2
+                                        </th>
+                                        <th id="compare-header-3" class="py-2 px-4 border-b text-left hidden">
+                                            Text 3
+                                        </th>
+                                        <th id="compare-header-4" class="py-2 px-4 border-b text-left hidden">
+                                            Text 4
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td class="py-2 px-4 border-b">Overall Sentiment</td>
+                                        <td id="compare-sentiment-1" class="py-2 px-4 border-b"></td>
+                                        <td id="compare-sentiment-2" class="py-2 px-4 border-b hidden"></td>
+                                        <td id="compare-sentiment-3" class="py-2 px-4 border-b hidden"></td>
+                                        <td id="compare-sentiment-4" class="py-2 px-4 border-b hidden"></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-2 px-4 border-b">Sentiment Score</td>
+                                        <td id="compare-score-1" class="py-2 px-4 border-b"></td>
+                                        <td id="compare-score-2" class="py-2 px-4 border-b hidden"></td>
+                                        <td id="compare-score-3" class="py-2 px-4 border-b hidden"></td>
+                                        <td id="compare-score-4" class="py-2 px-4 border-b hidden"></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-2 px-4 border-b">Dominant Emotion</td>
+                                        <td id="compare-emotion-1" class="py-2 px-4 border-b"></td>
+                                        <td id="compare-emotion-2" class="py-2 px-4 border-b hidden"></td>
+                                        <td id="compare-emotion-3" class="py-2 px-4 border-b hidden"></td>
+                                        <td id="compare-emotion-4" class="py-2 px-4 border-b hidden"></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="compare-error-message"
+                    class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-lg mt-4 hidden" role="alert">
+                    <p class="font-bold">Error:</p>
+                    <p id="compare-error-text"></p>
+                </div>
+            </div>
+
+            <div id="results-section" class="results-section mt-4 hidden">
+                <h2 class="text-2xl font-bold text-gray-800 mb-3">Analysis Results:</h2>
+                <div id="sentiment-result" class="result-box">
+                    <p class="text-gray-700 text-lg">
+                        <strong class="text-gray-900">Overall Sentiment:</strong>
+                        <span id="overall-sentiment"></span>
+                    </p>
+                    <p class="text-gray-700 text-lg">
+                        <strong class="text-gray-900">Sentiment Score:</strong> <span id="sentiment-score"></span>
+                    </p>
+                    <p class="text-gray-700 text-lg">
+                        <strong class="text-gray-900">Emotional Tone:</strong> <span id="emotional-tone"></span>
+                    </p>
+                    <div id="emotions-container" class="mt-2 flex flex-wrap"></div>
+
+                    <div class="mt-4">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-2">Sentiment-Driving Keywords:</h3>
+                        <div id="keywords-container" class="flex flex-wrap gap-2"></div>
+                    </div>
+
+                    <div class="visualization-tabs mt-4">
+                        <button class="tab-button active" data-tab="bar-chart">Emotion Intensity</button>
+                        <button class="tab-button" data-tab="pie-chart">Emotion Distribution</button>
+                        <button class="tab-button" data-tab="radar-chart">Emotion Profile</button>
+                    </div>
+
+                    <div id="bar-chart" class="tab-content active">
+                        <div class="chart-title">Emotion Intensity Chart</div>
+                        <div class="chart-container"><canvas id="emotionBarChart"></canvas></div>
+                    </div>
+                    <div id="pie-chart" class="tab-content">
+                        <div class="chart-title">Emotion Distribution</div>
+                        <div class="chart-container"><canvas id="emotionPieChart"></canvas></div>
+                    </div>
+                    <div id="radar-chart" class="tab-content">
+                        <div class="chart-title">Emotion Profile Radar</div>
+                        <div class="chart-container"><canvas id="emotionRadarChart"></canvas></div>
+                    </div>
+                </div>
+
+                <button id="clear-button"
+                    class="bg-gray-500 text-white font-bold py-2 px-4 rounded-xl shadow-lg hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 self-center mt-4 hidden">
+                    Clear Analysis
+                </button>
+
+                <div class="download-button-wrapper self-center mt-4 hidden" id="download-button-wrapper">
+                    <button id="download-report-button"
+                        class="bg-indigo-600 text-white font-bold py-2 px-4 rounded-xl shadow-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-2 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                        Download Report
+                    </button>
+
+                    <div id="download-options"
+                        class="hidden bg-white rounded-lg shadow-lg p-4 w-64 border border-gray-200">
+                        <h3 class="font-semibold text-gray-800 mb-2">Export Format:</h3>
+                        <button
+                            class="download-option-btn w-full text-left px-3 py-2 hover:bg-gray-100 rounded-md flex items-center gap-2"
+                            data-format="pdf">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-red-500" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                            </svg>
+                            PDF Report
+                        </button>
+                        <button
+                            class="download-option-btn w-full text-left px-3 py-2 hover:bg-gray-100 rounded-md flex items-center gap-2"
+                            data-format="json">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-yellow-500" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            JSON Data
+                        </button>
+                        <button
+                            class="download-option-btn w-full text-left px-3 py-2 hover:bg-gray-100 rounded-md flex items-center gap-2"
+                            data-format="csv">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-500" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            CSV Data
+                        </button>
+                    </div>
+                </div>
+                <div id="error-message"
+                    class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-lg mt-4 hidden" role="alert">
+                    <p class="font-bold">Error:</p>
+                    <p id="error-text"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <footer>
+        <p>&copy; 2026 Sentiment Analyzer | Made with ❤️ by Siyamthanda Dlakavu | All rights reserved.</p>
+    </footer>
+    <!-- Load external JavaScript file -->
+    <script src="js/index.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,77 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+pythonenv*
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual Environment
+venv/
+env/
+.env
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Flask
+instance/
+.webassets-cache
+.env.flask
+
+# NLTK data (optional - if users need to download)
+nltk_data/
+
+# Logs
+*.log
+*.log.*
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Project specific
+*.db
+*.sqlite3
+
+# Backend secrets (if any)
+*.key
+*.pem
+.env
+*.env
+
+# Frontend dependencies (if you ever add npm)
+node_modules/
+package-lock.json
+yarn.lock
+
+# Testing
+coverage/
+.pytest_cache/
+.tox/
+.mypy_cache/
+.ruff_cache/
+
+# Backups
+*.bak
+backup/

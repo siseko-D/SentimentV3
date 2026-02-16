@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>History - Sentiment Analysis Dashboard</title>
+    <link rel="icon" type="image/x-icon" href="/images/sentiment_logo.jpg" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/frontend/css/style_3.css" />
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        inter: ["Inter", "sans-serif"]
+                    }
+                }
+            }
+        };
+    </script>
+</head>
+
+<body class="font-inter">
+    <nav class="bg-gray-800 text-white shadow-md">
+        <div class="max-w-7xl mx-auto flex justify-between items-center px-4 py-4">
+            <a href="index.html"
+                class="text-3xl font-extrabold text-blue-300 hover:text-blue-200 transition duration-300">Sentiment
+                Analyzer</a>
+            <div>
+                <a href="about.html" class="ml-6 text-lg hover:text-blue-300 transition duration-300">About</a>
+                <a href="/frontend/index.html" class="ml-6 text-lg hover:text-blue-300 transition duration-300">Dashboard</a>
+                <a href="history.html" class="ml-6 text-lg font-bold text-blue-400">History</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="main-content-wrapper">
+        <div class="history-container">
+            <h1 class="text-4xl font-extrabold text-center text-gray-800 mb-6">Analysis History</h1>
+
+            <div class="flex flex-col sm:flex-row gap-4 mb-6">
+                <div class="flex-grow">
+                    <label for="search-input" class="sr-only">Search history</label>
+                    <input type="text" id="search-input" placeholder="Search by text or title..."
+                        class="p-2 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        aria-label="Search history items" />
+                </div>
+                <div class="flex gap-4">
+                    <div>
+                        <label for="sentiment-filter" class="sr-only">Filter by Sentiment</label>
+                        <select id="sentiment-filter"
+                            class="p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            aria-label="Filter by sentiment">
+                            <option value="">All Sentiments</option>
+                            <option value="positive">Positive</option>
+                            <option value="negative">Negative</option>
+                            <option value="neutral">Neutral</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="type-filter" class="sr-only">Filter by Type</label>
+                        <select id="type-filter"
+                            class="p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            aria-label="Filter by analysis type">
+                            <option value="">All Types</option>
+                            <option value="single">Single Analysis</option>
+                            <option value="batch">Batch Analysis</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                <div>
+                    <label for="date-from" class="block text-sm font-medium text-gray-700 mb-1">Date From:</label>
+                    <input type="date" id="date-from"
+                        class="p-2 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        aria-label="Filter from date" />
+                </div>
+                <div>
+                    <label for="date-to" class="block text-sm font-medium text-gray-700 mb-1">Date To:</label>
+                    <input type="date" id="date-to"
+                        class="p-2 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        aria-label="Filter to date" />
+                </div>
+            </div>
+
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-semibold text-gray-700">Recent Analyses</h2>
+                <div class="flex gap-2">
+                    <button id="export-csv"
+                        class="text-sm bg-blue-500 text-white hover:bg-blue-600 font-medium py-1.5 px-3 rounded-md transition duration-200"
+                        aria-label="Export history to CSV">
+                        Export to CSV
+                    </button>
+                    <button id="clear-history"
+                        class="text-sm text-red-600 hover:text-red-800 font-medium py-1.5 px-3 rounded-md transition duration-200"
+                        aria-label="Clear all history">
+                        Clear All History
+                    </button>
+                </div>
+            </div>
+
+            <div id="history-list"></div>
+
+            <div id="pagination" class="pagination hidden">
+                <button id="prev-page" class="pagination-button" disabled aria-label="Previous page">
+                    Previous
+                </button>
+                <div id="page-numbers" class="flex gap-1"></div>
+                <button id="next-page" class="pagination-button" aria-label="Next page">Next</button>
+            </div>
+
+            <div id="empty-state" class="empty-state hidden">
+                <svg class="empty-state-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <h3 class="text-xl font-semibold text-gray-700 mb-2">No Analysis History</h3>
+                <p class="text-gray-500 mb-4">
+                    Your past analyses will appear here once you start using the Sentiment Analyzer.
+                </p>
+                <a href="/frontend/index.html"
+                    class="inline-flex items-center justify-center bg-blue-600 text-white font-bold py-2 px-4 rounded-lg shadow hover:bg-blue-700">
+                    Analyze Text Now
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div id="history-details-modal" class="modal">
+        <div class="modal-content relative">
+            <button id="modal-close-button" class="modal-close-button" aria-label="Close details modal">
+                &times;
+            </button>
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">Analysis Details</h2>
+            <div id="modal-content"></div>
+        </div>
+    </div>
+
+    <div id="confirm-clear-modal" class="modal">
+        <div class="modal-content max-w-sm text-center">
+            <h3 class="text-xl font-bold text-gray-800 mb-4">Confirm Clear History</h3>
+            <p class="text-gray-700 mb-6">
+                Are you sure you want to clear all analysis history? This action cannot be undone.
+            </p>
+            <div class="flex justify-center gap-4">
+                <button id="cancel-clear-btn"
+                    class="px-5 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 transition duration-200">
+                    Cancel
+                </button>
+                <button id="confirm-clear-btn"
+                    class="px-5 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition duration-200">
+                    Clear All
+                </button>
+            </div>
+        </div>
+    </div>
+    <footer>
+        <p>&copy; 2026 Sentiment Analyzer | Made with ❤️ by Siyamthanda Dlakavu | All rights reserved.</p>
+    </footer>
+    <script src="/frontend/js/history.js"></script>
+
+</body>
+
+</html>
