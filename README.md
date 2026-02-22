@@ -138,4 +138,4 @@ Font Awesome for icons
 ## 📧 Contact
 For questions or feedback, please open an issue on GitHub.
 
-###Made with ❤️ by Siyamthanda Dlakavu
+Made with ❤️ by Siyamthanda Dlakavu
