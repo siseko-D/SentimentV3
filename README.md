@@ -1,11 +1,9 @@
 # Sentiment Analysis Dashboard
-
 A powerful, free, and local sentiment analysis web application that uses VADER (Valence Aware Dictionary and sEntiment Reasoner) for instant text analysis without any API costs or limitations.
 
 <img width="1584" height="775" alt="sentiment" src="https://github.com/user-attachments/assets/6cbf4068-7fd5-4cbd-a27f-fd51daf3e399" />
 
 ## 🚀 Features
-
 - **Real-time Sentiment Analysis** - Analyze text sentiment (positive/negative/neutral) instantly.
 - **Multi-emotion Detection** - Detects 6 emotions: anger, disgust, fear, joy, sadness, surprise.
 - **Keyword Extraction** - Identifies sentiment-driving keywords from your text.
@@ -17,26 +15,22 @@ A powerful, free, and local sentiment analysis web application that uses VADER (
 - **Analysis History** - Local storage of all analyses with search and filter capabilities.
 
 ## 🛠️ Tech Stack
-
 ### Frontend
 - HTML5, CSS3, JavaScript.
 - Tailwind CSS for styling.
 - Chart.js for data visualization.
 - jsPDF for PDF report generation.
-
 ### Backend
 - Python Flask.
 - NLTK VADER sentiment analyzer.
 - No external API dependencies - completely free!
 
 ## 📋 Prerequisites
-
 - Python 3.7 or higher.
 - Modern web browser (Chrome, Firefox, Edge, Safari).
 - pip (Python package installer)
 
 ## 🔧 Installation
-
 ### 1. Clone the Repository
 ```bash
 git clone https://github.com/YOUR_USERNAME/sentiment-analysis-dashboard.git
@@ -52,7 +46,6 @@ pip install -r requirements.txt
 # Start the Flask server
 python backend.py4
 ```
-
 ### 3. Access the Application
 ```bash
 Open your browser and navigate to the frontend folder
@@ -61,7 +54,6 @@ Open index.html directly or use a local server (like Live Server in VS Code)
 
 The backend runs on http://127.0.0.1:5000
 ```
-
 ## 🏗️ Project Structure
 ```bash
 sentiment-analysis-dashboard/
@@ -126,14 +118,14 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 This project is licensed under the MIT License - see the LICENSE file for details.
 
 ## 👤 Author
-Siyamthanda Dlakavu
-GitHub: @siseko-D
+- Siyamthanda Dlakavu
+- **GitHub:** @siseko-D
 
 ## 🙏 Acknowledgments
-NLTK VADER for sentiment analysis
-Chart.js for beautiful charts
-Tailwind CSS for styling
-Font Awesome for icons
+- **NLTK VADER** for Sentiment Analysis.
+- **Chart.js** for beautiful charts.
+- **Tailwind CSS** for styling.
+- **Font Awesome** for icons.
 
 ## 📧 Contact
 For questions or feedback, please open an issue on GitHub.
